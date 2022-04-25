@@ -1,3 +1,16 @@
+/* This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 require('dotenv').config();
 
 const express = require('express');
@@ -52,6 +65,8 @@ app.post('/', (req, res) => {
 		|| !keys.includes('navn')) return res.sendStatus(422);
 	if(!keys.includes('tlf') || req.body.tlf == '') req.body.tlf = null;
 
+	if(req.body.navn.length > 255) return res.sendStatus(422);
+
 	io.sockets.emit('resultat', {ak: req.body.ak, cid: req.body.cid, navn: req.body.navn});
 
 	con.pquery(mysql.format(
@@ -75,12 +90,10 @@ app.get('/', (req, res) => {
 });
 
 app.get('/klienter', (req,res) => {
-	con.pquery('SELECT * FROM klienter').then(rows => {
+	con.pquery('SELECT klienter.klient_id as cid, klienter.navn, COUNT(*) FROM resultat JOIN klienter ON resultat.klient_id = klient.klient_id GROUP BY resultat.klient_id').then(rows => {
 		res.send(rows);
 	}).catch(err => {
 		console.log(err);
 		res.sendStatus(500);
 	});
 });
-
-app.get('/:user')
